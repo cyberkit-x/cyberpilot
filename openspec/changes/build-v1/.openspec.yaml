@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-08-12
+goal: Deliver the minimal persistent agentic hunt loop across init, exec,
+  skills, policy, OCI sandboxing, evidence, and TUI sessions.

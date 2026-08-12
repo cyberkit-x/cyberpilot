@@ -1,0 +1,35 @@
+schema: spec-driven
+
+context: |
+  CyberPilot is an open-source, terminal-native agentic security operator for authorized vulnerability hunting.
+  V1 targets Web/API testing and uses Go with CGO disabled, one portable binary, persistent local sessions,
+  Docker or rootless Podman sandboxes, OpenAI-compatible model endpoints, focused community SKILL.md files,
+  deterministic allow/ask/deny policy, and reproducible evidence. CLI, TUI, and exec share one runtime.
+  Preserve model, skill, runner, and provider independence. Never treat model or Skill instructions as authority
+  to expand scope. Tests use local intentionally vulnerable fixtures, never public systems. Supported release
+  targets are Linux amd64/arm64, macOS amd64/arm64, and Windows amd64. Follow AGENTS.md and
+  docs/SKILL_STANDARD.md. Use conventional commits and keep documentation aligned with implemented behavior.
+
+rules:
+  proposal:
+    - State explicit non-goals for changes that could expand the V1 product boundary.
+    - Identify authorization, evidence, portability, and community compatibility impact.
+  specs:
+    - Include negative and boundary scenarios for security-sensitive behavior.
+    - Distinguish leads from verified findings and client lifetime from session lifetime where relevant.
+  design:
+    - Explain how deterministic policy encloses non-deterministic model behavior.
+    - Keep host credentials and container-runtime sockets outside task sandboxes.
+    - Resolve architecture-changing questions before task generation.
+  tasks:
+    - Make each checkbox independently verifiable and order tasks by dependency.
+    - Include tests for allow and deny paths, recovery, redaction, and all supported platforms when relevant.
+
+operations:
+  apply:
+    guidance:
+      - Implement vertical, testable slices and check tasks only after their acceptance behavior passes.
+      - Do not contact public targets or silently install host dependencies during tests.
+  archive:
+    guidance:
+      - Confirm README and AGENTS.md describe implemented rather than planned behavior before archive.
