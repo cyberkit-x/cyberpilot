@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race ./...
+
+  build:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build package
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME:-dev}"
+          if [[ "${GITHUB_REF_TYPE:-branch}" != "tag" ]]; then
+            version="dev-${GITHUB_SHA::7}"
+          fi
+          built_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          package="cyberpilot_${version}_${GOOS}_${GOARCH}"
+          binary="cyberpilot"
+          if [[ "$GOOS" == "windows" ]]; then
+            binary="cyberpilot.exe"
+          fi
+
+          mkdir -p "dist/$package"
+          go build -trimpath \
+            -ldflags "-s -w -X github.com/cyberkit-x/cyberpilot/internal/buildinfo.version=$version -X github.com/cyberkit-x/cyberpilot/internal/buildinfo.commit=${GITHUB_SHA::7} -X github.com/cyberkit-x/cyberpilot/internal/buildinfo.date=$built_at" \
+            -o "dist/$package/$binary" \
+            ./cmd/cyberpilot
+          cp README.md "dist/$package/"
+
+          if [[ "$GOOS" == "windows" ]]; then
+            (cd dist && zip -qr "$package.zip" "$package")
+          else
+            tar -C dist -czf "dist/$package.tar.gz" "$package"
+          fi
+          rm -rf "dist/$package"
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: cyberpilot-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: cyberpilot-*
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum * > checksums.txt
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: dist/*
