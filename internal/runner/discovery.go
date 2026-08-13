@@ -202,7 +202,10 @@ func ProbeLifecycle(ctx context.Context, executor ProcessExecutor, provider Prov
 			_, _ = executor.Run(context.Background(), provider.Executable, []string{"rm", "-f", name}, environment)
 		}
 	}()
-	if err := run("create", "--name", name, "--label", ProbeLabel, image, "sh", "-c", "trap : TERM INT; sleep 300 & wait"); err != nil {
+	// The sandbox image entrypoint owns the container lifecycle. Keep the probe
+	// on the same entrypoint contract used by real sessions so init validates
+	// the artifact users will actually run.
+	if err := run("create", "--name", name, "--label", ProbeLabel, image, "hold"); err != nil {
 		return fmt.Errorf("create probe sandbox: %w", err)
 	}
 	created = true

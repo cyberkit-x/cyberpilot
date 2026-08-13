@@ -69,6 +69,10 @@ func TestProbeLifecycleAndFailureCleanup(t *testing.T) {
 	if want := []string{"image", "create", "start", "exec", "stop", "rm"}; !reflect.DeepEqual(operations, want) {
 		t.Fatalf("operations=%v want=%v", operations, want)
 	}
+	create := fake.calls[1]
+	if got := create[len(create)-1]; got != "hold" {
+		t.Fatalf("probe bypassed sandbox entrypoint contract: create=%v", create)
+	}
 
 	failing := &fakeProcess{results: map[string]ProcessResult{}, failAt: " exec "}
 	if err := ProbeLifecycle(context.Background(), failing, provider, "probe:test"); err == nil {

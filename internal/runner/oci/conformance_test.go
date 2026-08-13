@@ -28,6 +28,9 @@ func TestProviderConformance(t *testing.T) {
 	if err := adapter.Probe(ctx); err != nil {
 		t.Fatal(err)
 	}
+	if err := runner.ProbeLifecycle(ctx, nil, runner.ProviderSummary{Provider: provider, Executable: provider, Connection: "default"}, image); err != nil {
+		t.Fatalf("init lifecycle probe: %v", err)
+	}
 	session := domain.MustNewID()
 	workspace := filepath.Join(t.TempDir(), "workspace")
 	if err := os.MkdirAll(workspace, 0o700); err != nil {
