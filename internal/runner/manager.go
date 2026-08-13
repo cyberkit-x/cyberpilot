@@ -32,6 +32,12 @@ func (m *Manager) Ensure(ctx context.Context, spec SandboxSpec) error {
 	if err := os.MkdirAll(workspace, 0700); err != nil {
 		return err
 	}
+	// Linux bind mounts preserve host ownership, while the sandbox always runs
+	// as the fixed non-root uid 65532. WorkspaceRoot remains owner-only, so
+	// other host users cannot traverse to this isolated leaf.
+	if err := os.Chmod(workspace, 0o777); err != nil {
+		return fmt.Errorf("make sandbox workspace writable: %w", err)
+	}
 	spec.Workspace = workspace
 	m.mu.Lock()
 	defer m.mu.Unlock()

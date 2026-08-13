@@ -33,6 +33,9 @@ func TestProviderConformance(t *testing.T) {
 	if err := os.MkdirAll(workspace, 0o700); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.Chmod(workspace, 0o777); err != nil {
+		t.Fatal(err)
+	}
 	spec := runner.SandboxSpec{SessionID: session, Image: image, Workspace: workspace, MemoryBytes: 256 << 20, ProcessLimit: 64, NetworkProfile: "none"}
 	if err := adapter.Create(ctx, spec); err != nil {
 		t.Fatal(err)

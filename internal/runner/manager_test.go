@@ -3,6 +3,8 @@ package runner
 import (
 	"context"
 	"github.com/cyberkit-x/cyberpilot/internal/domain"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -34,5 +36,28 @@ func TestManagerPersistentWorkspaceRecoveryAndBoundedCapture(t *testing.T) {
 func TestManagerFailsWithoutProvider(t *testing.T) {
 	if err := (&Manager{}).Ensure(context.Background(), SandboxSpec{SessionID: domain.MustNewID()}); err == nil {
 		t.Fatal("host fallback occurred")
+	}
+}
+
+func TestManagerKeepsParentPrivateAndMakesLeafWritableForContainerUID(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "private-workspaces")
+	if err := os.MkdirAll(root, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	id := domain.MustNewID()
+	manager := &Manager{Provider: NewFake(), WorkspaceRoot: root}
+	if err := manager.Ensure(context.Background(), SandboxSpec{SessionID: id, Image: "fixture"}); err != nil {
+		t.Fatal(err)
+	}
+	rootInfo, err := os.Stat(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	leafInfo, err := os.Stat(filepath.Join(root, string(id)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rootInfo.Mode().Perm() != 0o700 || leafInfo.Mode().Perm() != 0o777 {
+		t.Fatalf("root=%o leaf=%o", rootInfo.Mode().Perm(), leafInfo.Mode().Perm())
 	}
 }
