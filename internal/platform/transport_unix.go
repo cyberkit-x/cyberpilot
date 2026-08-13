@@ -20,7 +20,7 @@ func (localTransport) Listen(endpoint string) (net.Listener, error) {
 	if err := os.Remove(endpoint); err != nil && !os.IsNotExist(err) {
 		return nil, fmt.Errorf("remove stale local socket: %w", err)
 	}
-	listener, err := net.Listen("unix", endpoint)
+	listener, err := (&net.ListenConfig{}).Listen(context.Background(), "unix", endpoint)
 	if err != nil {
 		return nil, err
 	}

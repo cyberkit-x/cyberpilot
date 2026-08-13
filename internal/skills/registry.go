@@ -29,7 +29,7 @@ type GitSource struct{ ID, Checkout, Commit string }
 func (s GitSource) Name() string { return "git:" + s.ID }
 func (s GitSource) FS(ctx context.Context) (fs.FS, error) {
 	if len(s.Commit) < 7 {
-		return nil, errors.New("Git skill source requires a pinned commit")
+		return nil, errors.New("git skill source requires a pinned commit")
 	}
 	command := exec.CommandContext(ctx, "git", "-C", s.Checkout, "rev-parse", "HEAD")
 	command.Env = []string{"PATH=" + os.Getenv("PATH")}
@@ -38,7 +38,7 @@ func (s GitSource) FS(ctx context.Context) (fs.FS, error) {
 		return nil, fmt.Errorf("inspect Git skill source: %w", err)
 	}
 	if strings.TrimSpace(string(output)) != s.Commit {
-		return nil, fmt.Errorf("Git skill source is at %s, expected pinned commit %s", strings.TrimSpace(string(output)), s.Commit)
+		return nil, fmt.Errorf("git skill source is at %s, expected pinned commit %s", strings.TrimSpace(string(output)), s.Commit)
 	}
 	return os.DirFS(s.Checkout), nil
 }

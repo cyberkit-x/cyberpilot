@@ -25,7 +25,7 @@ func (s *Store) Records(ctx context.Context, session domain.ID, kind string) ([]
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var result []json.RawMessage
 	for rows.Next() {
 		var data []byte

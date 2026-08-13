@@ -59,12 +59,16 @@ func (c ExecCommand) Run(ctx context.Context, args []string) error {
 	if options.Detach {
 		return c.writeResult(ExecResult{SessionID: session.ID, State: session.State}, options.JSON)
 	}
-	fmt.Fprintf(c.Error, "Session %s created\n", session.ID)
+	if _, err := fmt.Fprintf(c.Error, "Session %s created\n", session.ID); err != nil {
+		return &ExitError{Code: 3, Err: fmt.Errorf("write progress: %w", err)}
+	}
 	followCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	final := ExecResult{SessionID: session.ID, State: session.State}
 	err = c.Client.FollowEvents(followCtx, session.ID, 0, c.PollInterval, func(message rpc.EventMessage) error {
-		fmt.Fprintf(c.Error, "[%d] %s\n", message.Cursor, message.Event.Type)
+		if _, err := fmt.Fprintf(c.Error, "[%d] %s\n", message.Cursor, message.Event.Type); err != nil {
+			return fmt.Errorf("write progress: %w", err)
+		}
 		if message.Event.Type == "session.state-changed" {
 			var change domain.SessionStateChangedPayload
 			if json.Unmarshal(message.Event.Payload, &change) == nil {

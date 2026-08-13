@@ -1,11 +1,9 @@
 package skills
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 	"path"
 	"regexp"
 	"strings"
@@ -102,18 +100,8 @@ func (i *Index) openReference(ctx context.Context, document Document, reference 
 		if err != nil {
 			return nil, err
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		return readBounded(file, MaxReferenceBytes)
 	}
 	return nil, errors.New("skill source is unavailable")
-}
-func readResource(file fs.File, limit int) ([]byte, error) {
-	var buffer bytes.Buffer
-	if _, err := buffer.ReadFrom(file); err != nil {
-		return nil, err
-	}
-	if buffer.Len() > limit {
-		return nil, errors.New("resource exceeds size limit")
-	}
-	return buffer.Bytes(), nil
 }

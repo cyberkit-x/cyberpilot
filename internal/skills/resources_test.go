@@ -2,10 +2,11 @@ package skills
 
 import (
 	"context"
-	"github.com/cyberkit-x/cyberpilot/internal/domain"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/cyberkit-x/cyberpilot/internal/domain"
 )
 
 func TestResourcesRegisteredUntrustedWithoutExecution(t *testing.T) {

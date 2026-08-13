@@ -2,10 +2,11 @@ package evidence
 
 import (
 	"encoding/json"
-	"github.com/cyberkit-x/cyberpilot/internal/domain"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/cyberkit-x/cyberpilot/internal/domain"
 )
 
 func TestSessionResultExportIntegrityAndCoverage(t *testing.T) {

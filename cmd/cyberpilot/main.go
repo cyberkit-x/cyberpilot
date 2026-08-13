@@ -75,7 +75,7 @@ func run(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
-		defer daemon.Close()
+		defer func() { _ = daemon.Close() }()
 		daemonCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 		defer stop()
 		return daemon.Serve(daemonCtx)
@@ -132,7 +132,7 @@ func run(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 		model := tui.New(client)
 		if err := model.Refresh(ctx); err != nil {
 			return err
@@ -150,7 +150,7 @@ func run(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 		return (cli.ExecCommand{Input: os.Stdin, Output: os.Stdout, Error: os.Stderr, Client: client, PollInterval: 200 * time.Millisecond}).Run(ctx, args)
 	}
 	app := cli.App{Input: os.Stdin, Output: os.Stdout, Error: os.Stderr, Init: initCommand, Config: configCommand, Exec: execCommand, TUI: tuiCommand, Daemon: daemonCommand, Version: buildinfo.String}

@@ -57,6 +57,9 @@ func (i *Index) Resources(ctx context.Context, skillName string) ([]Resource, er
 	scriptRoot := path.Join(skillName, "scripts")
 	_ = fs.WalkDir(filesystem, scriptRoot, func(resourcePath string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
+			// A missing optional scripts directory does not invalidate the Skill.
+			// Other parse and source errors were already handled above.
+			//nolint:nilerr
 			return nil
 		}
 		if entry.IsDir() {
@@ -68,6 +71,9 @@ func (i *Index) Resources(ctx context.Context, skillName string) ([]Resource, er
 		}
 		data, err := fs.ReadFile(filesystem, clean)
 		if err != nil || len(data) > MaxReferenceBytes {
+			// Individual optional resources are excluded when unreadable or too
+			// large; they are never executed during discovery.
+			//nolint:nilerr
 			return nil
 		}
 		sum := sha256.Sum256(data)

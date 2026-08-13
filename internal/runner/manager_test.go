@@ -2,11 +2,12 @@ package runner
 
 import (
 	"context"
-	"github.com/cyberkit-x/cyberpilot/internal/domain"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/cyberkit-x/cyberpilot/internal/domain"
 )
 
 func TestManagerPersistentWorkspaceRecoveryAndBoundedCapture(t *testing.T) {

@@ -108,11 +108,11 @@ func loadOrCreateToken(path string) (string, error) {
 		return "", err
 	}
 	if _, err := file.WriteString(value); err != nil {
-		file.Close()
+		_ = file.Close()
 		return "", err
 	}
 	if err := file.Sync(); err != nil {
-		file.Close()
+		_ = file.Close()
 		return "", err
 	}
 	if err := file.Close(); err != nil {

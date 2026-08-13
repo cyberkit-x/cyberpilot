@@ -2,11 +2,12 @@ package tui
 
 import (
 	"context"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/cyberkit-x/cyberpilot/internal/domain"
 	"strings"
 	"testing"
 	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/cyberkit-x/cyberpilot/internal/domain"
 )
 
 func fixtures() []domain.Session {

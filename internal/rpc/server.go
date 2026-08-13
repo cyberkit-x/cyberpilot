@@ -43,7 +43,7 @@ func (s *Server) Serve(ctx context.Context, listener net.Listener) error {
 			return err
 		}
 		connections.Add(1)
-		go func() { defer connections.Done(); defer conn.Close(); s.serveConn(ctx, conn) }()
+		go func() { defer connections.Done(); defer func() { _ = conn.Close() }(); s.serveConn(ctx, conn) }()
 	}
 }
 

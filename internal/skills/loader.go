@@ -38,7 +38,7 @@ func Parse(source fs.FS, skillDir string, options ParseOptions) (Document, error
 	if err != nil {
 		return Document{}, fmt.Errorf("open %s: %w", filePath, err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	data, err := readBounded(file, MaxSkillBytes)
 	if err != nil {
 		return Document{}, err

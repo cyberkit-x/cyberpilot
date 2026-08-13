@@ -2,8 +2,9 @@ package evidence
 
 import (
 	"context"
-	"github.com/cyberkit-x/cyberpilot/internal/domain"
 	"testing"
+
+	"github.com/cyberkit-x/cyberpilot/internal/domain"
 )
 
 func TestEvidenceOnlyPromotion(t *testing.T) {

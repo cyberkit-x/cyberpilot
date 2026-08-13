@@ -5,7 +5,7 @@ import (
 )
 
 func TestCanonicalTargets(t *testing.T) {
-	tests := map[string]string{"HTTPS://Example.COM/api#x": "https://example.com:443/api", "api.example.com": "api.example.com", "api.example.com:8443": "api.example.com:8443", "192.0.2.1": "192.0.2.1", "[2001:db8::1]:443": "[2001:db8::1]:443", "192.0.2.99/24": "192.0.2.0/24", "*.Example.COM": "*.example.com"}
+	tests := map[string]string{"HTTPS://Example.COM/api#x": "https://example.com:443/api", "api2.example.com": "api2.example.com", "api.example.com:8443": "api.example.com:8443", "192.0.2.1": "192.0.2.1", "[2001:db8::1]:443": "[2001:db8::1]:443", "192.0.2.99/24": "192.0.2.0/24", "*.Example.COM": "*.example.com"}
 	for input, want := range tests {
 		got, err := ParseTarget(input)
 		if err != nil || got.Canonical != want {

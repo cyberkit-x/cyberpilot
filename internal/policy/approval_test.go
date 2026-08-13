@@ -1,9 +1,10 @@
 package policy
 
 import (
-	"github.com/cyberkit-x/cyberpilot/internal/domain"
 	"testing"
 	"time"
+
+	"github.com/cyberkit-x/cyberpilot/internal/domain"
 )
 
 func TestApprovalOnlyNarrowsLimits(t *testing.T) {

@@ -56,11 +56,12 @@ func ParseExecOptions(args []string, stdin io.Reader) (ExecOptions, error) {
 	}
 	var data []byte
 	var err error
-	if promptFile != "" {
+	switch {
+	case promptFile != "":
 		data, err = os.ReadFile(promptFile)
-	} else if positional[0] == "-" {
+	case positional[0] == "-":
 		data, err = io.ReadAll(io.LimitReader(stdin, MaxPromptBytes+1))
-	} else {
+	default:
 		data = []byte(positional[0])
 	}
 	if err != nil {

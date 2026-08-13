@@ -72,7 +72,7 @@ func (w *Worker) run(ctx context.Context, session domain.Session) {
 		fail("sandbox unavailable: " + err.Error())
 		return
 	}
-	defer w.Runner.Cleanup(context.Background(), session.ID, true)
+	defer func() { _ = w.Runner.Cleanup(context.Background(), session.ID, true) }()
 	max := w.MaxActions
 	if max <= 0 {
 		max = 20
@@ -239,7 +239,7 @@ func (w *Worker) execute(ctx context.Context, session domain.Session, proposal d
 		if err != nil {
 			return domain.Observation{}, domain.ActionFailed, "", err
 		}
-		defer response.Body.Close()
+		defer func() { _ = response.Body.Close() }()
 		body, err := io.ReadAll(io.LimitReader(response.Body, 1<<20))
 		if err != nil {
 			return domain.Observation{}, domain.ActionFailed, "", err

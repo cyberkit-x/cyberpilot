@@ -105,6 +105,8 @@ func (m *Model) Create(ctx context.Context, objective string, targets, goals []s
 
 func (m *Model) SyncEvents(ctx context.Context) error {
 	if m.Current.ID.Validate() != nil {
+		// The detail screen may render before a session is selected.
+		//nolint:nilerr
 		return nil
 	}
 	var events []domain.Event
@@ -117,13 +119,17 @@ func (m *Model) SyncEvents(ctx context.Context) error {
 		m.Cursor = event.Sequence
 	}
 	var findings []json.RawMessage
-	if err := m.Client.Call(ctx, "session.records", map[string]any{"id": m.Current.ID, "kind": "finding"}, &findings); err == nil {
-		m.Findings = decodeRecords[domain.Finding](findings)
+	if err := m.Client.Call(ctx, "session.records", map[string]any{"id": m.Current.ID, "kind": "finding"}, &findings); err != nil {
+		m.Connected = false
+		return err
 	}
+	m.Findings = decodeRecords[domain.Finding](findings)
 	var gaps []json.RawMessage
-	if err := m.Client.Call(ctx, "session.records", map[string]any{"id": m.Current.ID, "kind": "coverage-gap"}, &gaps); err == nil {
-		m.CoverageGaps = decodeRecords[domain.CoverageGap](gaps)
+	if err := m.Client.Call(ctx, "session.records", map[string]any{"id": m.Current.ID, "kind": "coverage-gap"}, &gaps); err != nil {
+		m.Connected = false
+		return err
 	}
+	m.CoverageGaps = decodeRecords[domain.CoverageGap](gaps)
 	m.Connected = true
 	return nil
 }
@@ -221,7 +227,7 @@ func (m Model) overview() string {
 	needs, other := splitSessions(m.visible())
 	var b strings.Builder
 	b.WriteString("CYBERPILOT  SESSIONS\n")
-	b.WriteString(fmt.Sprintf("%d active  %d needs input  %d total\n\n", countActive(m.Sessions), len(needs), len(m.Sessions)))
+	fmt.Fprintf(&b, "%d active  %d needs input  %d total\n\n", countActive(m.Sessions), len(needs), len(m.Sessions))
 	renderList(&b, "NEEDS INPUT", needs, m.Width)
 	b.WriteString("\n")
 	renderList(&b, "OTHER SESSIONS", other, m.Width)

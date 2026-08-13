@@ -49,7 +49,7 @@ func (s *Store) configureAndMigrate(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	statements := []string{
 		`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)`,
 		`INSERT INTO schema_version(version) SELECT 0 WHERE NOT EXISTS (SELECT 1 FROM schema_version)`,
@@ -93,7 +93,7 @@ func (s *Store) CreateSession(ctx context.Context, session domain.Session, event
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	if err := insertEvent(ctx, tx, event); err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (s *Store) Append(ctx context.Context, event domain.Event) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	if err := insertEvent(ctx, tx, event); err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func (s *Store) Events(ctx context.Context, sessionID domain.ID, after uint64) (
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var events []domain.Event
 	for rows.Next() {
 		var event domain.Event
@@ -220,7 +220,7 @@ func (s *Store) ListSessions(ctx context.Context) ([]domain.Session, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var sessions []domain.Session
 	for rows.Next() {
 		session, err := scanSession(rows)

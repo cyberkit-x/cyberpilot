@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/cyberkit-x/cyberpilot/internal/domain"
 	"testing"
 	"time"
+
+	"github.com/cyberkit-x/cyberpilot/internal/domain"
 )
 
 func TestFakeRunnerLifecycleStreamingAndArtifacts(t *testing.T) {

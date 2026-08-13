@@ -49,9 +49,30 @@ jobs:
       - name: Validate OpenSpec changes
         run: npx -y @fission-ai/openspec@1.8.0 validate build-v1 --strict
 
+  code-quality:
+    name: Code quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: 1.26.5
+          cache: false
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9.3.0
+        with:
+          version: v2.12.2
+          args: --timeout=5m
+
   build:
     name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
-    needs: test
+    needs:
+      - test
+      - code-quality
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -132,7 +153,9 @@ jobs:
 
   docker-conformance:
     name: Docker conformance
-    needs: test
+    needs:
+      - test
+      - code-quality
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository

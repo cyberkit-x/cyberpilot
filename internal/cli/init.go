@@ -27,15 +27,19 @@ func (command InitCommand) Run(ctx context.Context) error {
 	reader := bufio.NewReader(command.Input)
 	if current, err := command.Configs.Load(ctx); err == nil {
 		redacted := configuration.Redact(current)
-		fmt.Fprintf(command.Output, "Current model: %s / %s (%s)\n", redacted.Model.Provider, redacted.Model.Model, redacted.Model.BaseURL)
-		fmt.Fprintf(command.Output, "Current runner: %s (%s)\n", redacted.Runner.Provider, redacted.Runner.Connection)
+		if _, err := fmt.Fprintf(command.Output, "Current model: %s / %s (%s)\n", redacted.Model.Provider, redacted.Model.Model, redacted.Model.BaseURL); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(command.Output, "Current runner: %s (%s)\n", redacted.Runner.Provider, redacted.Runner.Connection); err != nil {
+			return err
+		}
 		answer, err := prompt(reader, command.Output, "Replace the current configuration? [y/N]: ", false)
 		if err != nil {
 			return err
 		}
 		if !strings.EqualFold(answer, "y") && !strings.EqualFold(answer, "yes") {
-			fmt.Fprintln(command.Output, "Configuration unchanged.")
-			return nil
+			_, err := fmt.Fprintln(command.Output, "Configuration unchanged.")
+			return err
 		}
 	} else if !errors.Is(err, configuration.ErrNotConfigured) {
 		return err
@@ -62,7 +66,9 @@ func (command InitCommand) Run(ctx context.Context) error {
 		if summary.Rootless {
 			mode = "rootless"
 		}
-		fmt.Fprintf(command.Output, "  %d. %s %s (%s, %s)\n", index+1, summary.Provider, summary.Version, summary.Endpoint, mode)
+		if _, err := fmt.Fprintf(command.Output, "  %d. %s %s (%s, %s)\n", index+1, summary.Provider, summary.Version, summary.Endpoint, mode); err != nil {
+			return err
+		}
 	}
 	selected := ""
 	if len(summaries) > 1 {
@@ -88,8 +94,8 @@ func (command InitCommand) Run(ctx context.Context) error {
 	if _, err := command.Initializer.Initialize(ctx, candidate); err != nil {
 		return err
 	}
-	fmt.Fprintln(command.Output, "CyberPilot is ready.")
-	return nil
+	_, err = fmt.Fprintln(command.Output, "CyberPilot is ready.")
+	return err
 }
 
 func promptSecret(reader *bufio.Reader, input io.Reader, output io.Writer, label string) (string, error) {

@@ -2,9 +2,10 @@ package policy
 
 import (
 	"context"
-	"github.com/cyberkit-x/cyberpilot/internal/domain"
 	"strings"
 	"testing"
+
+	"github.com/cyberkit-x/cyberpilot/internal/domain"
 )
 
 func action(target, capability string) domain.ActionProposal {

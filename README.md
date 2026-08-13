@@ -15,10 +15,13 @@ Requirements are Go 1.24+, Node/npm for strict OpenSpec validation, and Docker o
 ```bash
 make build
 make check
+make lint
 make spec-check
 ```
 
 The default Go binary is built with `CGO_ENABLED=0`. CI compiles Linux amd64/arm64, macOS amd64/arm64, and Windows amd64.
+
+CI runs code-quality checks as a separate required job with a pinned `golangci-lint` version and repository-owned rules in `.golangci.yml`. Contributors should run `make lint` before pushing; formatting/import drift, unchecked errors, invalid HTTP response handling, context misuse, suspicious control flow, misspellings, and dead or ineffective code block builds and releases.
 
 ## Releases
 

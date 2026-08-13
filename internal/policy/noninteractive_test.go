@@ -1,8 +1,9 @@
 package policy
 
 import (
-	"github.com/cyberkit-x/cyberpilot/internal/domain"
 	"testing"
+
+	"github.com/cyberkit-x/cyberpilot/internal/domain"
 )
 
 func TestNonInteractiveRetainsPendingAndProgressesAllowed(t *testing.T) {

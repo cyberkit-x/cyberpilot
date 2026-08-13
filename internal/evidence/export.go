@@ -4,8 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/cyberkit-x/cyberpilot/internal/domain"
 	"time"
+
+	"github.com/cyberkit-x/cyberpilot/internal/domain"
 )
 
 type SessionResult struct {

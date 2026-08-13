@@ -2,11 +2,12 @@ package oci
 
 import (
 	"context"
-	"github.com/cyberkit-x/cyberpilot/internal/domain"
-	"github.com/cyberkit-x/cyberpilot/internal/runner"
 	"io"
 	"strings"
 	"testing"
+
+	"github.com/cyberkit-x/cyberpilot/internal/domain"
+	"github.com/cyberkit-x/cyberpilot/internal/runner"
 )
 
 type call struct {

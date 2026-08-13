@@ -14,12 +14,12 @@ import (
 
 type Starter func(context.Context, platform.Paths) error
 
-func StartProcess(_ context.Context, _ platform.Paths) error {
+func StartProcess(ctx context.Context, _ platform.Paths) error {
 	executable, err := os.Executable()
 	if err != nil {
 		return err
 	}
-	command := exec.Command(executable, "__daemon")
+	command := exec.CommandContext(ctx, executable, "__daemon")
 	command.Stdin, command.Stdout, command.Stderr = nil, nil, nil
 	if err := command.Start(); err != nil {
 		return fmt.Errorf("start CyberPilot daemon: %w", err)
@@ -48,7 +48,7 @@ func EnsureClient(ctx context.Context, paths platform.Paths, starter Starter) (*
 		}
 		select {
 		case <-ctx.Done():
-			return nil, fmt.Errorf("daemon readiness: %w (last error: %v)", ctx.Err(), last)
+			return nil, fmt.Errorf("daemon readiness failed (last dial error: %v): %w", last, ctx.Err()) //nolint:errorlint // last is diagnostic; cancellation remains the causal error.
 		case <-ticker.C:
 		}
 	}

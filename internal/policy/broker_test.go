@@ -43,7 +43,14 @@ func TestNetworkBrokerLocalRequestAndRedirectRevalidation(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = response.Body.Close()
-	_, err = client.Get("http://fixture.local:" + port + "/redirect")
+	redirectRequest, requestErr := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://fixture.local:"+port+"/redirect", nil)
+	if requestErr != nil {
+		t.Fatal(requestErr)
+	}
+	redirectResponse, err := client.Do(redirectRequest)
+	if redirectResponse != nil {
+		_ = redirectResponse.Body.Close()
+	}
 	if err == nil || !strings.Contains(err.Error(), "outside confirmed scope") {
 		t.Fatalf("redirect error=%v", err)
 	}

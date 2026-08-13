@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -180,9 +181,5 @@ func acceptanceClient(t *testing.T, paths platform.Paths) *rpc.Client {
 }
 
 func asExit(err error, target **cli.ExitError) bool {
-	value, ok := err.(*cli.ExitError)
-	if ok {
-		*target = value
-	}
-	return ok
+	return errors.As(err, target)
 }

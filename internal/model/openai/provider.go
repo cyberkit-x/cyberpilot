@@ -115,7 +115,7 @@ func (p Provider) turn(ctx context.Context, turn model.TurnRequest) (model.TurnR
 		if err != nil {
 			return model.TurnResult{}, nil, err
 		}
-		defer response.Body.Close()
+		defer func() { _ = response.Body.Close() }()
 		return decodeStream(response.Body)
 	}
 	var response chatResponse
@@ -244,7 +244,7 @@ func (p Provider) request(ctx context.Context, path string, input, output any) e
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	data, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBytes+1))
 	if err != nil {
 		return err
@@ -289,7 +289,7 @@ func (p Provider) do(ctx context.Context, path string, input any) (*http.Respons
 		return nil, fmt.Errorf("reach model endpoint: %w", err)
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		defer response.Body.Close()
+		defer func() { _ = response.Body.Close() }()
 		data, _ := io.ReadAll(io.LimitReader(response.Body, 4096))
 		kind := "request"
 		switch response.StatusCode {

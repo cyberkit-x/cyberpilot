@@ -44,7 +44,7 @@ func (c *Client) Call(ctx context.Context, method string, input, output any) err
 	}
 	if deadline, ok := ctx.Deadline(); ok {
 		_ = c.conn.SetDeadline(deadline)
-		defer c.conn.SetDeadline(time.Time{})
+		defer func() { _ = c.conn.SetDeadline(time.Time{}) }()
 	}
 	if _, err := c.conn.Write(append(data, '\n')); err != nil {
 		return err
