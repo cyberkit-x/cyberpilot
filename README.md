@@ -20,6 +20,27 @@ make spec-check
 
 The default Go binary is built with `CGO_ENABLED=0`. CI compiles Linux amd64/arm64, macOS amd64/arm64, and Windows amd64.
 
+## Releases
+
+Pushing a semantic version tag such as `v0.1.0` runs all tests, vulnerability and OpenSpec validation, Docker lifecycle and complete agent-path acceptance, and all five cross-builds before publishing a GitHub Release. The release contains:
+
+- `cyberpilot_vX.Y.Z_linux_amd64.tar.gz`
+- `cyberpilot_vX.Y.Z_linux_arm64.tar.gz`
+- `cyberpilot_vX.Y.Z_darwin_amd64.tar.gz`
+- `cyberpilot_vX.Y.Z_darwin_arm64.tar.gz`
+- `cyberpilot_vX.Y.Z_windows_amd64.zip`
+- `cyberpilot-release.spdx.json`
+- `checksums.txt`
+
+Every platform archive includes the binary, README, third-party license inventory, and pinned sandbox-image identity. GitHub build-provenance attestations cover all five archives, the SBOM, and checksums. Release publication is skipped on normal branch pushes and fails closed when any expected asset or prerequisite job is missing.
+
+Maintainers create a release only from a reviewed `main` commit:
+
+```bash
+git tag -a v0.1.0 -m "CyberPilot v0.1.0"
+git push origin v0.1.0
+```
+
 ## Configure
 
 Initialization configures exactly one OpenAI-compatible model and one local Docker or Podman runner. It probes typed tool calls and structured output before saving, then verifies a disposable OCI lifecycle using an image already present locally. Initialization never silently downloads host tools or images.

@@ -25,6 +25,15 @@ jobs:
           go-version: 1.26.5
           cache: false
 
+      - name: Validate release tag
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: |
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tags must use vMAJOR.MINOR.PATCH, got: ${GITHUB_REF_NAME}" >&2
+            exit 1
+          fi
+
       - name: Check formatting
         run: test -z "$(gofmt -l .)"
 
@@ -150,23 +159,24 @@ jobs:
   release:
     name: Publish release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs:
+      - build
+      - docker-conformance
     runs-on: ubuntu-latest
     permissions:
       contents: write
       id-token: write
       attestations: write
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
       - name: Download packages
         uses: actions/download-artifact@v8
         with:
           path: dist
           pattern: cyberpilot-*
           merge-multiple: true
-
-      - name: Generate checksums
-        working-directory: dist
-        run: sha256sum * > checksums.txt
 
       - name: Generate release SBOMs
         uses: anchore/sbom-action@v0
@@ -175,13 +185,27 @@ jobs:
           format: spdx-json
           output-file: dist/cyberpilot-release.spdx.json
 
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum cyberpilot_* cyberpilot-release.spdx.json > checksums.txt
+
+      - name: Verify release assets
+        env:
+          EXPECTED_VERSION: ${{ github.ref_name }}
+        run: scripts/verify-release-packages.sh dist
+
       - name: Attest release packages
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: dist/*
+          subject-path: |
+            dist/cyberpilot_*
+            dist/cyberpilot-release.spdx.json
+            dist/checksums.txt
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v3
         with:
+          name: CyberPilot ${{ github.ref_name }}
           generate_release_notes: true
+          fail_on_unmatched_files: true
           files: dist/*
