@@ -1,102 +1,76 @@
 # CyberPilot
 
-CyberPilot is an open-source agentic security operator for authorized vulnerability hunting.
+CyberPilot is an open-source, terminal-native agentic security operator for authorized Web and API vulnerability hunting. It keeps multiple persistent hunt sessions in one local runtime, retrieves focused community `SKILL.md` guidance as evidence changes, evaluates every proposed action with deterministic policy, runs commands in isolated Docker or rootless Podman sandboxes, and separates leads from evidence-verified findings.
 
-Users define the objective, targets, and boundaries. CyberPilot decides what to investigate next, selects relevant community skills, acts through a controlled runner, evaluates the evidence, and replans until the task reaches a meaningful stopping point.
+> CyberPilot is for systems you own or are explicitly authorized to assess. Scope and approval controls are safety boundaries, not permission to test third-party systems.
 
-```text
-Objective + Scope
-       ↓
-Observe → Reason → Act → Verify → Replan
-       ↓
-Reproducible findings and explicit coverage gaps
-```
+## Current build-v1 status
 
-CyberPilot is not a vulnerability scanner with an AI chat interface, a fixed penetration-testing workflow, or a collection of payloads. The execution path is dynamic; authorization and evidence requirements are deterministic.
+The repository implements the local daemon, authenticated RPC, persistent sessions/events/artifacts, OpenAI-compatible model and OCI adapters, policy/network boundaries, dynamic Skill retrieval, evidence gates/exports, `init`, `config`, durable `exec`, and the English multi-session TUI. A created session is scheduled by the daemon through the model/Skill/policy/action/evidence loop and remains observable after the initiating client exits.
 
-## Product principles
+## Build
 
-- **Goal-driven:** users state security goals instead of selecting a scan template.
-- **Agentic:** the model chooses and revises actions from current evidence.
-- **Evidence-first:** a suspicious signal is a lead, not a verified vulnerability.
-- **Human-governed:** scope, policy, and approval boundaries always outrank skills and model decisions.
-- **Community-powered:** security practitioners contribute focused, reusable attack skills.
-- **Open and portable:** model providers, skills, and execution backends must remain replaceable.
-- **Terminal-native:** CLI/TUI is the primary interface for expert operators and automation.
-
-## Initial product boundary
-
-The first release will validate one complete loop for authorized Web/API testing:
+Requirements are Go 1.24+, Node/npm for strict OpenSpec validation, and Docker or rootless Podman for sandbox conformance.
 
 ```bash
-cyberpilot init
-cyberpilot exec "Assess https://example.com for authorization weaknesses"
-cyberpilot
-```
-
-The initial runtime is expected to provide:
-
-- natural-language task creation;
-- persistent task sessions shared by CLI and TUI;
-- non-interactive execution through `cyberpilot exec`;
-- shell, curl, Python, and filesystem capabilities;
-- a Docker or Podman sandbox selected during initialization;
-- dynamic discovery and loading of focused `SKILL.md` files;
-- explicit `Lead`, `Verified Finding`, and `Blocked` outcomes;
-- evidence and an audit trail for every reportable finding.
-
-## Build and release targets
-
-CyberPilot is implemented as a Go command and distributed as a native, statically linked binary. Pull requests and changes to `main` build all supported targets; a `v*` tag publishes the same packages to GitHub Releases with SHA-256 checksums.
-
-| Platform | Architecture | Release format |
-|---|---|---|
-| Linux | x86-64 (`amd64`) | `.tar.gz` |
-| Linux | ARM64 (`arm64`) | `.tar.gz` |
-| macOS | Intel (`amd64`) | `.tar.gz` |
-| macOS | Apple Silicon (`arm64`) | `.tar.gz` |
-| Windows | x86-64 (`amd64`) | `.zip` |
-
-Build and test locally with:
-
-```bash
-make check
 make build
-./bin/cyberpilot version
+make check
+make spec-check
 ```
 
-Browser automation, Kubernetes runners, team collaboration, distributed execution, mobile, Active Directory, and binary exploitation are future capabilities, not requirements for the first usable release.
+The default Go binary is built with `CGO_ENABLED=0`. CI compiles Linux amd64/arm64, macOS amd64/arm64, and Windows amd64.
+
+## Configure
+
+Initialization configures exactly one OpenAI-compatible model and one local Docker or Podman runner. It probes typed tool calls and structured output before saving, then verifies a disposable OCI lifecycle using an image already present locally. Initialization never silently downloads host tools or images.
+
+```bash
+export CYBERPILOT_SANDBOX_IMAGE=cyberpilot-sandbox:v1
+cyberpilot init
+cyberpilot config
+```
+
+The API key is read without terminal echo and stored in macOS Keychain, Windows Credential Manager, or Linux Secret Service. Linux also supports explicit `env:VARIABLE_NAME` references. YAML contains only the opaque credential reference. `cyberpilot config` displays a redacted profile.
+
+## Sessions
+
+Running `cyberpilot` opens the TUI. The overview separates `NEEDS INPUT` from `OTHER SESSIONS`; quitting the TUI does not terminate background sessions.
+
+Non-interactive execution accepts one explicit prompt source:
+
+```bash
+cyberpilot exec --detach --json \
+  "Assess https://127.0.0.1:8443 for authorized API object-access issues"
+
+printf '%s\n' "Assess https://127.0.0.1:8443" | cyberpilot exec -
+cyberpilot exec --prompt-file objective.txt --max-actions 20 --timeout 30m
+```
+
+`exec` progress is written to stderr and the selected final format is written once to stdout. Exit codes are 0 completed/no finding, 1 completed/verified findings, 2 needs input or blocked, 3 configuration/runtime failure, and 4 invalid input or scope. `--detach` returns after durable session creation.
+
+## Runtime and data
+
+Platform configuration and data directories follow native per-user conventions. Unix directories are mode `0700`, local RPC sockets are `0600`, and Windows uses a per-user named pipe. SQLite WAL stores append-only events and current projections. Large evidence is stored by SHA-256 under the user data directory. Protected raw evidence remains local; outward model, log, terminal, and export boundaries receive redacted content.
+
+One persistent non-root sandbox is allocated per session. The release image contains shell, curl, Python, CA roots, and a small helper. It is created read-only with dropped capabilities, resource limits, no runtime socket, no host credentials, and network disabled by default. Shell and Python actions operate on the isolated workspace. Target HTTP actions use the daemon's scoped network broker, which revalidates destination, DNS results, redirects, and request rates. Docker and Podman are accessed only from the host daemon through argument-array CLI adapters.
 
 ## Skills
 
-A CyberPilot skill captures a focused piece of practitioner knowledge: when a security hypothesis is worth pursuing, what to inspect, how to test it safely, and what evidence is required before reporting it.
+CyberPilot accepts focused, licensed common-format `SKILL.md` directories from configured local sources or existing Git checkouts pinned to an exact commit. Imported repository content is read, never executed during refresh. Scripts and dependencies remain untrusted and require a separately approved sandbox action. See [docs/SKILL_STANDARD.md](docs/SKILL_STANDARD.md).
 
-Skills guide reasoning; they do not override policy, directly control the host, or impose a universal workflow. A minimal skill is a directory containing one `SKILL.md` file. References and scripts are optional and loaded only when needed.
+## Threat model and limits
 
-See [Skill acceptance standard](docs/SKILL_STANDARD.md) before proposing or importing a skill.
+Model output, target responses, skills, repositories, scripts, and tool output are untrusted. They cannot expand scope or grant approval. Policy returns `allow`, `ask`, or `deny` before execution and rechecks hostname, confirmed resolution, redirects, and rates through the scoped broker.
 
-## Trust model
+V1 covers Web/API investigation with shell, curl, and Python. It intentionally excludes browser automation, Kubernetes/remote runners, multi-user tenancy, mobile, Active Directory, binary exploitation, arbitrary host execution, implicit dependency installation, and multi-model orchestration. Missing browser capability is reported as a coverage gap rather than installed automatically.
 
-Third-party skills and scripts are untrusted input. CyberPilot must never silently expand scope, mount a container-runtime socket into a task sandbox, install host dependencies, or execute destructive actions because a skill requested it.
+## Provider checks
 
-Skill status describes evidence about compatibility and quality:
+Docker lifecycle and complete agent-path acceptance run in CI. A release operator with rootless Podman runs the equivalent lifecycle and full-path checks:
 
-- **Compatible:** readable by CyberPilot; effectiveness has not been established.
-- **Tested:** exercised against a reproducible authorized target.
-- **Maintained:** actively reviewed and tested by CyberPilot maintainers.
+```bash
+export CYBERPILOT_CONFORMANCE_IMAGE=cyberpilot-sandbox:v1
+scripts/check-rootless-podman.sh
+```
 
-No label means that a skill is safe or effective in every environment.
-
-## Contributing
-
-CyberPilot welcomes focused contributions from red teamers, security researchers, tool authors, agent engineers, and platform engineers. Start with [CONTRIBUTING.md](CONTRIBUTING.md).
-
-The project values small, testable improvements over large collections of unverified content. New functionality must preserve authorization boundaries, observable behavior, and provider independence.
-
-## Safety and legal use
-
-CyberPilot is intended only for systems you own or are explicitly authorized to test. Contributors and users are responsible for complying with applicable law and rules of engagement. Safety controls are part of the product contract, not optional prompt guidance.
-
-## Status
-
-CyberPilot is in the architecture and bootstrap stage. Interfaces described here establish project direction and may evolve before the first tagged release.
+Tests use local fixtures only. Automated test configuration must never contain public target addresses.

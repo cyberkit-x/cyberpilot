@@ -22,7 +22,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
+          go-version: 1.26.5
           cache: false
 
       - name: Check formatting
@@ -33,6 +33,12 @@ jobs:
 
       - name: Test
         run: go test -race ./...
+
+      - name: Vulnerability scan
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+      - name: Validate OpenSpec changes
+        run: npx -y @fission-ai/openspec@1.8.0 validate build-v1 --strict
 
   build:
     name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
@@ -59,7 +65,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
+          go-version: 1.26.5
           cache: false
 
       - name: Build package
@@ -87,6 +93,18 @@ jobs:
             -o "dist/$package/$binary" \
             ./cmd/cyberpilot
           cp README.md "dist/$package/"
+          cp docs/THIRD_PARTY_LICENSES.md "dist/$package/"
+          cp sandbox/BUILD_IDENTITY "dist/$package/SANDBOX_IMAGE"
+
+          if [[ "$GOOS/$GOARCH" == "linux/amd64" ]]; then
+            "dist/$package/$binary" version | grep -F "$version"
+          fi
+
+          case "$GOOS" in
+            windows) file "dist/$package/$binary" | grep -F "PE32+" ;;
+            darwin) file "dist/$package/$binary" | grep -F "Mach-O" ;;
+            linux) file "dist/$package/$binary" | grep -F "ELF" ;;
+          esac
 
           if [[ "$GOOS" == "windows" ]]; then
             (cd dist && zip -qr "$package.zip" "$package")
@@ -103,6 +121,32 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  docker-conformance:
+    name: Docker conformance
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: 1.26.5
+          cache: false
+      - name: Build sandbox image
+        run: docker build -t cyberpilot-sandbox:ci sandbox
+      - name: Run provider conformance
+        env:
+          CYBERPILOT_CONFORMANCE_PROVIDER: docker
+          CYBERPILOT_CONFORMANCE_IMAGE: cyberpilot-sandbox:ci
+        run: go test ./internal/runner/oci -run '^TestProviderConformance$' -count=1 -v
+
+      - name: Run complete agent path
+        env:
+          CYBERPILOT_ACCEPTANCE_PROVIDER: docker
+          CYBERPILOT_CONFORMANCE_IMAGE: cyberpilot-sandbox:ci
+        run: go test ./internal/runtime -run '^TestFullOCIExecEvidenceRestartAndTUIAcceptance$' -count=1 -v
+
   release:
     name: Publish release
     if: startsWith(github.ref, 'refs/tags/v')
@@ -110,6 +154,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     steps:
       - name: Download packages
         uses: actions/download-artifact@v8
@@ -121,6 +167,18 @@ jobs:
       - name: Generate checksums
         working-directory: dist
         run: sha256sum * > checksums.txt
+
+      - name: Generate release SBOMs
+        uses: anchore/sbom-action@v0
+        with:
+          path: dist
+          format: spdx-json
+          output-file: dist/cyberpilot-release.spdx.json
+
+      - name: Attest release packages
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: dist/*
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v3
